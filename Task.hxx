@@ -16,23 +16,45 @@
 //
 // See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 //
-#ifndef TASK_H
-#define TASK_H
+#ifndef _TASK_H_
+#define _TASK_H_
 
 #include <string>
 
 namespace WorkLoadManager
 {
-  class Container;
+  struct ContainerType
+  {
+    float neededCores; // needed by WorkLoadManager
+    // parameters for client use, not needed by WorkLoadManager:
+    std::string name;
+    int id;
+  };
+  
+  struct Resource
+  {
+    unsigned int nbCores; // needed by WorkLoadManager
+    // parameters for client use, not needed by WorkLoadManager:
+    std::string name;
+    int id;
+  };
+  
+  struct Container
+  {
+    ContainerType* type;
+    Resource* resource;
+    unsigned int index; // worker index on the resource for this type
+  };
+
   /**
   * @todo write docs
   */
   class Task
   {
   public:
-    const std::string& type();
-    virtual void run(const Container& c);
+    virtual ContainerType* type()=0;
+    virtual void run(const Container& c)=0;
   };
 }
 
-#endif // TASK_H
+#endif // _TASK_H_

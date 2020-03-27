@@ -18,44 +18,49 @@
 //
 #ifndef WORKLOADMANAGER_H
 #define WORKLOADMANAGER_H
+#include <mutex>
+#include <future>
 #include <condition_variable> // notifications
-#include <thread>
-
+#include <map>
+#include <queue>
+#include <list>
+#include "Task.hxx"
 namespace WorkLoadManager
 {
-  class Task;
-  class Resource;
-  class Container;
-  /**
-  * @todo write docs
-  */
   class WorkloadManager
   {
   public:
+    ~WorkloadManager();
     void addTask(Task* t);
-    void addResource(Resource* r);
-    void start(); //! start execution thread
-    void stop(); //! stop execution thread
+    void addResource(Resource r);
+    void start(); //! start execution
+    void stop(); //! stop execution
+
   private:
-    struct TaskId
+    typedef unsigned long TaskId;
+    struct RunningInfo
     {
-      unsigned int id;
+      TaskId id;
+      Container worker;
       Task* task;
     };
-    
-    struct Worker
-    {
-      Container* container;
-      std::thread thread;
-    };
-    
-    void endTask(TaskId tid);
-    void runOneTask(TaskId tid, Container* c);
+    std::list<Resource*> _resources;
+    std::list<Task*> _submitedTasks;
+    std::map<TaskId, std::future<void> > _runningTasks;
+    std::queue<RunningInfo> _finishedTasks;
+    TaskId _nextIndex = 0;
+    std::mutex _data_mutex;
+    std::condition_variable _startCondition; // start tasks thread notification
+    std::condition_variable _endCondition; // end tasks thread notification
+    bool _stop = false;
+    std::list< std::future<void> > _otherThreads;
+    //std::map<Resource*, float> _loadBalance;
+
     void runTasks();
-    bool chooseTaskToRun(TaskId& t, Container*& c);
-    void notifyRun(); //! notify the execution thread
-    
-    bool stop_running=true;
+    void endTasks();
+    void runOneTask(const RunningInfo& taskInfo);
+    bool chooseTaskToRun(RunningInfo& taskInfo); // choose a task and block a resource
+    void liberate(const RunningInfo& taskInfo); // free the resource blocked by the task
   };
 }
 #endif // WORKLOADMANAGER_H

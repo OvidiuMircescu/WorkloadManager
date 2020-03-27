@@ -18,46 +18,127 @@
 //
 #include "WorkloadManager.hxx"
 #include "Task.hxx"
-#include "Container.hxx"
+//#include "Container.hxx"
 
 namespace WorkLoadManager
 {
+  WorkloadManager::~WorkloadManager()
+  {
+    stop();
+    for(Resource* r : _resources)
+      delete r;
+  }
+  
+  void WorkloadManager::addResource(Resource r)
+  {
+    std::unique_lock<std::mutex> lock(_data_mutex);
+    _resources.push_back(new Resource(r));
+    _startCondition.notify_one();
+  }
+  
   void WorkloadManager::addTask(Task* t)
   {
-    // TODO create id & add task to the queue
-    notifyRun();
-  }
-  
-  void WorkloadManager::addResource(Resource* r)
-  {
-    // TODO: add resource to the list
-  }
-  
-  void WorkloadManager::endTask(WorkloadManager::TaskId tid)
-  {
-    // TODO:liberate the resource
-    notifyRun(); // new tasks can be run
-  }
-  
-  void WorkloadManager::runOneTask(WorkloadManager::TaskId tid, Container* c)
-  {
-    // TODO: start container if needed
-    // TODO: tid.task->run(c);
-    endTask(tid);
-  }
-  
-  void WorkloadManager::runTasks()
-  {
-    WorkloadManager::TaskId tid;
-    Container* c;
-    while(chooseTaskToRun(tid, c))
-      runOneTask(tid, c); //TODO: asynchrone
-  }
-  
-  bool WorkloadManager::chooseTaskToRun(WorkloadManager::TaskId& tid, Container*& c)
-  {
-    // TODO: find the first task that can be run if any.
-    return false; // no task can be run
+    std::unique_lock<std::mutex> lock(_data_mutex);
+    _submitedTasks.push_back(t);
+    _startCondition.notify_one();
   }
 
+  void WorkloadManager::start()
+  {
+    _otherThreads.emplace_back(std::async([this]
+      {
+        runTasks();
+      }));
+    _otherThreads.emplace_back(std::async([this]
+      {
+        endTasks();
+      }));
+  }
+
+  void WorkloadManager::stop()
+  {
+    {
+      std::unique_lock<std::mutex> lock(_data_mutex);
+      _stop = true;
+    }
+    _startCondition.notify_one();
+    _endCondition.notify_one();
+    for(std::future<void>& th : _otherThreads)
+      th.wait();
+  }
+
+  void WorkloadManager::runTasks()
+  {
+    bool threadStop = false;
+    while(!threadStop)
+    {
+      std::unique_lock<std::mutex> lock(_data_mutex);
+      _startCondition.wait(lock, [this] {return !_submitedTasks.empty();});
+      RunningInfo taskInfo;
+      while(chooseTaskToRun(taskInfo))
+      {
+        _runningTasks.emplace(taskInfo.id, std::async([this, taskInfo]
+          {
+            runOneTask(taskInfo);
+          }));
+      }
+      threadStop = _stop && _submitedTasks.empty();
+    }
+  }
+
+  void WorkloadManager::runOneTask(const RunningInfo& taskInfo)
+  {
+    taskInfo.task->run(taskInfo.worker);
+
+    {
+      std::unique_lock<std::mutex> lock(_data_mutex);
+      _finishedTasks.push(taskInfo);
+      _endCondition.notify_one();
+    }
+  }
+
+  void WorkloadManager::endTasks()
+  {
+    bool threadStop = false;
+    while(!threadStop)
+    {
+      std::unique_lock<std::mutex> lock(_data_mutex);
+      _endCondition.wait(lock, [this] {return !_finishedTasks.empty();});
+      while(!_finishedTasks.empty())
+      {
+        RunningInfo taskInfo = _finishedTasks.front();
+        _runningTasks[taskInfo.id].wait();
+        _runningTasks.erase(taskInfo.id);
+        _finishedTasks.pop();
+        liberate(taskInfo);
+      }
+      threadStop = _stop && _runningTasks.empty() && _submitedTasks.empty();
+      _startCondition.notify_one();
+    }
+  }
+
+  bool WorkloadManager::chooseTaskToRun(RunningInfo& taskInfo)
+  {
+    // We are already under the lock
+    Task* chosenTask = nullptr;
+    if(!_submitedTasks.empty() && !_resources.empty())
+    {
+      // naive implementation
+      // TODO: effective implementation
+      chosenTask = _submitedTasks.front();
+      _submitedTasks.pop_front();
+      TaskId currentIndex = _nextIndex++;
+      taskInfo.id = currentIndex;
+      taskInfo.task = chosenTask;
+      taskInfo.worker.type = chosenTask->type();
+      taskInfo.worker.resource = _resources.front();
+      taskInfo.worker.index = currentIndex; //bidon
+    }
+    return chosenTask != nullptr; // no task can be run
+  }
+
+  void WorkloadManager::liberate(const RunningInfo& taskInfo)
+  {
+    
+  }
 }
