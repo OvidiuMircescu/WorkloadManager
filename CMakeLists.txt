@@ -8,29 +8,7 @@ enable_testing()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set (_link_LIBRARIES
-  Threads::Threads
-)
+find_library(CPPUNIT_LIBRARIES NAMES cppunit)
+#find_package(cppunit REQUIRED)
 
-set (_wlm_sources
-  Task.cxx
-  WorkloadManager.cxx
-)
-
-set (_wlm_headers
-  Task.hxx
-  WorkloadManager.hxx
-)
-
-add_library(workloadmanager ${_wlm_sources})
-target_link_libraries(workloadmanager ${_link_LIBRARIES})
-#target_include_directories(workloadmanager 
-
-
-install(TARGETS workloadmanager LIBRARY DESTINATION lib)
-#install(TARGETS workloadmanager EXPORT FindWorkloadManager
-#        LIBRARY DESTINATION lib)
-install(FILES ${_wlm_headers} DESTINATION include/workloadmanager)
-#install(EXPORT workloadmanager DESTINATION lib/cmake/workloadmanager)
-
-add_subdirectory(Test)
+add_subdirectory(src)
