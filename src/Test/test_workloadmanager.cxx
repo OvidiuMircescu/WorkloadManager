@@ -1,7 +1,9 @@
 #include <string>
 #include <iostream>
+#include <sstream>
 
 #include "../WorkloadManager.hxx"
+#include "../AlgorithmImplement.hxx"
 
 class MyTask : public WorkloadManager::Task
 {
@@ -15,8 +17,10 @@ public:
   WorkloadManager::ContainerType* type()override {return &_type;}
   void run(const WorkloadManager::Container& c)override 
   {
-    std::cout << "Running task on " << c.resource->name << "-"
+    std::ostringstream message;
+    message << "Running task on " << c.resource->name << "-"
               << c.type->name << "-" << c.index << std::endl;
+    std::cout << message.str();
   }
   
 private:
@@ -25,12 +29,13 @@ private:
 
 int main(int argc, char *argv[])
 {
-  WorkloadManager::WorkloadManager wlm;
+  WorkloadManager::AlgorithmImplement algo;
+  WorkloadManager::WorkloadManager wlm(algo);
   WorkloadManager::Resource r;
   r.id = 0;
   r.name = "toto";
   r.nbCores = 42;
-  wlm.addResource(r);
+  wlm.addResource(&r);
   WorkloadManager::ContainerType ct;
   ct.id = 0;
   ct.name = "zozo";

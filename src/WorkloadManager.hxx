@@ -32,10 +32,10 @@ namespace WorkloadManager
   class WorkloadManager
   {
   public:
-    //WorkloadManager(WorkloadAlgorithm& algo);
+    WorkloadManager(WorkloadAlgorithm& algo);
     ~WorkloadManager();
     void addTask(Task* t);
-    void addResource(Resource r);
+    void addResource(Resource* r);
     void start(); //! start execution
     void stop(); //! stop execution
 
@@ -44,26 +44,23 @@ namespace WorkloadManager
     struct RunningInfo
     {
       TaskId id;
-      Container worker;
-      Task* task;
+      WorkloadAlgorithm::LaunchInfo info;
     };
-    std::list<Resource*> _resources;
-    std::list<Task*> _submitedTasks;
     std::map<TaskId, std::future<void> > _runningTasks;
     std::queue<RunningInfo> _finishedTasks;
-    TaskId _nextIndex = 0;
+    TaskId _nextIndex;
     std::mutex _data_mutex;
     std::condition_variable _startCondition; // start tasks thread notification
     std::condition_variable _endCondition; // end tasks thread notification
-    bool _stop = false;
+    bool _stop;
     std::list< std::future<void> > _otherThreads;
-    //WorkloadAlgorithm& _algo;
+    WorkloadAlgorithm& _algo;
 
     void runTasks();
     void endTasks();
     void runOneTask(const RunningInfo& taskInfo);
-    bool chooseTaskToRun(RunningInfo& taskInfo); // choose a task and block a resource
-    void liberate(const RunningInfo& taskInfo); // free the resource blocked by the task
+    // choose a task and block a resource
+    bool chooseTaskToRun(RunningInfo& taskInfo);
   };
 }
 #endif // WORKLOADMANAGER_H

@@ -26,11 +26,9 @@ namespace WorkloadManager
 class WorkloadAlgorithm
 {
 public:
-  typedef unsigned long TaskId;
   struct LaunchInfo
   {
     bool taskFound=false;
-    TaskId id=0;
     Container worker;
     Task* task=nullptr;
   };

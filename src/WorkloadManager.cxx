@@ -22,28 +22,35 @@
 
 namespace WorkloadManager
 {
-//   WorkloadManager::WorkloadManager(WorkloadAlgorithm& algo)
-//   {
-//   }
+  WorkloadManager::WorkloadManager(WorkloadAlgorithm& algo)
+  : _runningTasks()
+  , _finishedTasks()
+  , _nextIndex(0)
+  , _data_mutex()
+  , _startCondition()
+  , _endCondition()
+  , _stop(false)
+  , _otherThreads()
+  , _algo(algo)
+  {
+  }
   
   WorkloadManager::~WorkloadManager()
   {
     stop();
-    for(Resource* r : _resources)
-      delete r;
   }
   
-  void WorkloadManager::addResource(Resource r)
+  void WorkloadManager::addResource(Resource* r)
   {
     std::unique_lock<std::mutex> lock(_data_mutex);
-    _resources.push_back(new Resource(r));
+    _algo.addResource(r);
     _startCondition.notify_one();
   }
   
   void WorkloadManager::addTask(Task* t)
   {
     std::unique_lock<std::mutex> lock(_data_mutex);
-    _submitedTasks.push_back(t);
+    _algo.addTask(t);
     _startCondition.notify_one();
   }
 
@@ -77,7 +84,7 @@ namespace WorkloadManager
     while(!threadStop)
     {
       std::unique_lock<std::mutex> lock(_data_mutex);
-      _startCondition.wait(lock, [this] {return !_submitedTasks.empty();});
+      _startCondition.wait(lock, [this] {return !_algo.empty();});
       RunningInfo taskInfo;
       while(chooseTaskToRun(taskInfo))
       {
@@ -86,13 +93,13 @@ namespace WorkloadManager
             runOneTask(taskInfo);
           }));
       }
-      threadStop = _stop && _submitedTasks.empty();
+      threadStop = _stop && _algo.empty();
     }
   }
 
   void WorkloadManager::runOneTask(const RunningInfo& taskInfo)
   {
-    taskInfo.task->run(taskInfo.worker);
+    taskInfo.info.task->run(taskInfo.info.worker);
 
     {
       std::unique_lock<std::mutex> lock(_data_mutex);
@@ -111,12 +118,12 @@ namespace WorkloadManager
       while(!_finishedTasks.empty())
       {
         RunningInfo taskInfo = _finishedTasks.front();
+        _finishedTasks.pop();
         _runningTasks[taskInfo.id].wait();
         _runningTasks.erase(taskInfo.id);
-        _finishedTasks.pop();
-        liberate(taskInfo);
+        _algo.liberate(taskInfo.info);
       }
-      threadStop = _stop && _runningTasks.empty() && _submitedTasks.empty();
+      threadStop = _stop && _runningTasks.empty() && _algo.empty();
       _startCondition.notify_one();
     }
   }
@@ -124,25 +131,10 @@ namespace WorkloadManager
   bool WorkloadManager::chooseTaskToRun(RunningInfo& taskInfo)
   {
     // We are already under the lock
-    Task* chosenTask = nullptr;
-    if(!_submitedTasks.empty() && !_resources.empty())
-    {
-      // naive implementation
-      // TODO: effective implementation
-      chosenTask = _submitedTasks.front();
-      _submitedTasks.pop_front();
-      TaskId currentIndex = _nextIndex++;
-      taskInfo.id = currentIndex;
-      taskInfo.task = chosenTask;
-      taskInfo.worker.type = chosenTask->type();
-      taskInfo.worker.resource = _resources.front();
-      taskInfo.worker.index = currentIndex; //bidon
-    }
-    return chosenTask != nullptr; // no task can be run
+    taskInfo.id = _nextIndex;
+    _nextIndex ++;
+    taskInfo.info = _algo.chooseTask();
+    return taskInfo.info.taskFound;
   }
 
-  void WorkloadManager::liberate(const RunningInfo& taskInfo)
-  {
-    
-  }
 }

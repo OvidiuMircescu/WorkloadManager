@@ -44,6 +44,7 @@ void AlgorithmImplement::addResource(Resource* r)
 WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
 {
   LaunchInfo result;
+  std::list<Task*>::iterator chosenTaskIt;
   for( std::list<Task*>::iterator itTask = _waitingTasks.begin();
       !result.taskFound && itTask != _waitingTasks.end();
       itTask ++)
@@ -69,6 +70,7 @@ WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
       }
     if(best_resource != _resources.end())
     {
+      chosenTaskIt = itTask;
       result.task = (*itTask);
       result.taskFound = true;
       result.worker.resource = best_resource->first;
@@ -76,6 +78,8 @@ WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
       result.worker.index = best_resource->second.alloc(ctype);
     }
   }
+  if(result.taskFound)
+    _waitingTasks.erase(chosenTaskIt);
   return result;
 }
 

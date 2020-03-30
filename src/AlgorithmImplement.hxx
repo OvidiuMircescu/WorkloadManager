@@ -29,7 +29,7 @@ namespace WorkloadManager
 /**
  * @todo write docs
  */
-class AlgorithmImplement :  WorkloadAlgorithm
+class AlgorithmImplement : public WorkloadAlgorithm
 {
 public:
   void addTask(Task* t)override;
