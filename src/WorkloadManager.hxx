@@ -25,11 +25,14 @@
 #include <queue>
 #include <list>
 #include "Task.hxx"
-namespace WorkLoadManager
+#include "WorkloadAlgorithm.hxx"
+
+namespace WorkloadManager
 {
   class WorkloadManager
   {
   public:
+    //WorkloadManager(WorkloadAlgorithm& algo);
     ~WorkloadManager();
     void addTask(Task* t);
     void addResource(Resource r);
@@ -54,7 +57,7 @@ namespace WorkLoadManager
     std::condition_variable _endCondition; // end tasks thread notification
     bool _stop = false;
     std::list< std::future<void> > _otherThreads;
-    //std::map<Resource*, float> _loadBalance;
+    //WorkloadAlgorithm& _algo;
 
     void runTasks();
     void endTasks();

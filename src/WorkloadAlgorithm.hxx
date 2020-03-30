@@ -16,45 +16,30 @@
 //
 // See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 //
-#ifndef _TASK_H_
-#define _TASK_H_
+#ifndef WORKLOADALGORITHM_H
+#define WORKLOADALGORITHM_H
 
-#include <string>
+#include "Task.hxx"
 
 namespace WorkloadManager
 {
-  struct ContainerType
+class WorkloadAlgorithm
+{
+public:
+  typedef unsigned long TaskId;
+  struct LaunchInfo
   {
-    float neededCores; // needed by WorkloadManager
-    // parameters for client use, not needed by WorkloadManager:
-    std::string name;
-    int id;
-  };
-  
-  struct Resource
-  {
-    unsigned int nbCores; // needed by WorkloadManager
-    // parameters for client use, not needed by WorkloadManager:
-    std::string name;
-    int id;
-  };
-  
-  struct Container
-  {
-    const ContainerType* type;
-    const Resource* resource;
-    unsigned int index; // worker index on the resource for this type
+    bool taskFound=false;
+    TaskId id=0;
+    Container worker;
+    Task* task=nullptr;
   };
 
-  /**
-  * @todo write docs
-  */
-  class Task
-  {
-  public:
-    virtual ContainerType* type()=0;
-    virtual void run(const Container& c)=0;
-  };
+  virtual void addTask(Task* t)=0;
+  virtual void addResource(Resource* r)=0;
+  virtual LaunchInfo chooseTask()=0;
+  virtual void liberate(const LaunchInfo& info)=0;
+  virtual bool empty()const =0;
+};
 }
-
-#endif // _TASK_H_
+#endif // WORKLOADALGORITHM_H

@@ -20,8 +20,12 @@
 #include "Task.hxx"
 //#include "Container.hxx"
 
-namespace WorkLoadManager
+namespace WorkloadManager
 {
+//   WorkloadManager::WorkloadManager(WorkloadAlgorithm& algo)
+//   {
+//   }
+  
   WorkloadManager::~WorkloadManager()
   {
     stop();
