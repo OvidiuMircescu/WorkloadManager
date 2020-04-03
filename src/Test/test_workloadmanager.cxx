@@ -14,7 +14,7 @@ public:
     _type.name = "lolo";
     _type.neededCores = 1.0;
   }
-  WorkloadManager::ContainerType* type()override {return &_type;}
+  const WorkloadManager::ContainerType* type()const override {return &_type;}
   void run(const WorkloadManager::Container& c)override 
   {
     std::ostringstream message;

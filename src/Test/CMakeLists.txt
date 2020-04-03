@@ -13,4 +13,5 @@ target_link_libraries(test_workloadmanager workloadmanager)
 install(TARGETS test_workloadmanager RUNTIME DESTINATION bin)
 
 add_executable(testmain TestMain.cxx)
-target_link_libraries(testmain ${CPPUNIT_LIBRARIES})
+target_link_libraries(testmain workloadmanager ${CPPUNIT_LIBRARIES})
+add_test(testmain testmain)
