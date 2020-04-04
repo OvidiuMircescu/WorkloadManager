@@ -56,6 +56,10 @@ namespace WorkloadManager
 
   void WorkloadManager::start()
   {
+    {
+      std::unique_lock<std::mutex> lock(_data_mutex);
+      _stop = false;
+    }
     _otherThreads.emplace_back(std::async([this]
       {
         runTasks();

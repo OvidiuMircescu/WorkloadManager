@@ -41,7 +41,22 @@
 #include "../WorkloadManager.hxx"
 #include "../AlgorithmImplement.hxx"
 
-//#define DEBUG_LOG
+constexpr bool ACTIVATE_DEBUG_LOG = false;
+template<typename... Ts>
+void DEBUG_LOG(Ts... args)
+{
+  if(! ACTIVATE_DEBUG_LOG)
+    return;
+  if(sizeof...(Ts) == 0)
+    return;
+  std::ostringstream message;
+  // TODO:  C++17 solution: ( (message << args), ...);
+  // since initializer lists guarantee sequencing, this can be used to
+  // call a function on each element of a pack, in order:
+  int dummy[] = { (message << args, 0)...};
+  message << std::endl;
+  std::cerr << message.str();
+}
 
 class MyTask;
 class AbstractChecker
@@ -57,6 +72,7 @@ public:
   Checker();
   void check(const WorkloadManager::Container& c, MyTask* t)override;
   void globalCheck();
+  void reset();
 
   WorkloadManager::Resource resources[size_R];
   WorkloadManager::ContainerType types[size_T];
@@ -73,18 +89,10 @@ public:
   {
     _check->check(c, this);
 
-#ifdef DEBUG_LOG
-    std::ostringstream message;
-    message << "Running task " << _id << " on " << c.resource->name << "-"
-              << c.type->name << "-" << c.index << std::endl;
-    std::cerr << message.str();
-#endif
+    DEBUG_LOG("Running task ", _id, " on ", c.resource->name, "-", c.type->name,
+              "-", c.index);
     std::this_thread::sleep_for(std::chrono::seconds(_sleep));
-#ifdef DEBUG_LOG
-    std::ostringstream message2;
-    message2 << "Finish task " << _id << std::endl;
-    std::cerr << message2.str();
-#endif
+    DEBUG_LOG("Finish task ", _id);
   }
 
   void reset(int id,
@@ -148,20 +156,22 @@ void Checker<size_R, size_T>::globalCheck()
     for(std::size_t j=0; j < size_T; j++)
     {
       int max = _maxContainersForResource[i][j];
-#ifdef DEBUG_LOG
-      std::cout << resources[i].name << ", " << types[j].name << ":"
-                << max+1 << std::endl;
-#endif
+      DEBUG_LOG(resources[i].name, ", ", types[j].name, ":", max+1);
       CPPUNIT_ASSERT( (max+1) * types[j].neededCores <= resources[i].nbCores );
       global_max += types[j].neededCores * float(max+1);
     }
-#ifdef DEBUG_LOG
-    std::cout << resources[i].name << " global: " << global_max << std::endl;
-#endif
+    DEBUG_LOG(resources[i].name, " global: ", global_max);
     CPPUNIT_ASSERT(global_max >= resources[i].nbCores); // cores fully used
   }
 }
 
+template <std::size_t size_R, std::size_t size_T>
+void Checker<size_R, size_T>::reset()
+{
+  for(std::size_t i=0; i < size_R; i++)
+    for(std::size_t j=0; j < size_T; j++)
+      _maxContainersForResource[i][j] = 0;
+}
 
 class MyTest: public CppUnit::TestFixture
 {
@@ -182,15 +192,12 @@ void MyTest::atest()
   check.types[0].neededCores = 4.0;
   check.types[1].neededCores = 1.0;
 
-#ifdef DEBUG_LOG
-  std::cout << std::endl;
   for(std::size_t i=0; i < resourcesNumber; i ++)
-    std::cout << check.resources[i].name << " has "
-              << check.resources[i].nbCores << " cores." << std::endl;
+    DEBUG_LOG(check.resources[i].name, " has ", check.resources[i].nbCores,
+              " cores.");
   for(std::size_t i=0; i < typesNumber; i ++)
-    std::cout << check.types[i].name << " needs "
-              << check.types[i].neededCores << " cores." << std::endl;
-#endif
+    DEBUG_LOG(check.types[i].name, " needs ", check.types[i].neededCores,
+              " cores.");
 
   constexpr std::size_t tasksNumber = 100;
   MyTask tasks[tasksNumber];
@@ -199,28 +206,63 @@ void MyTest::atest()
   for(std::size_t i = tasksNumber / 2; i < tasksNumber; i++)
     tasks[i].reset(i, &check.types[1], 1, &check);
 
-#ifdef DEBUG_LOG
-  std::cout << "Number of tasks: " << tasksNumber << std::endl;
-  std::cout << "Tasks from 0 to " << tasksNumber / 2 << " are " 
-            << tasks[0].type()->name << std::endl;
-  std::cout << "Tasks from " << tasksNumber / 2 << " to " << tasksNumber
-            << " are " << tasks[tasksNumber / 2].type()->name << std::endl;
-#endif
+  DEBUG_LOG("Number of tasks: ", tasksNumber);
+  DEBUG_LOG("Tasks from 0 to ", tasksNumber/2, " are ", tasks[0].type()->name);
+  DEBUG_LOG("Tasks from ", tasksNumber/2, " to ", tasksNumber, " are ",
+            tasks[tasksNumber / 2].type()->name);
 
   WorkloadManager::AlgorithmImplement algo;
   WorkloadManager::WorkloadManager wlm(algo);
   for(std::size_t i=0; i < resourcesNumber; i ++)
     wlm.addResource(&check.resources[i]);
 
-//   for(std::size_t i = 0; i < tasksNumber; i++)
-//     wlm.addTask(&tasks[i]);
-  for(std::size_t i = tasksNumber-1; i > 0; i--)
+  // Add 4 core tasks first
+  check.reset();
+  for(std::size_t i = 0; i < tasksNumber; i++)
     wlm.addTask(&tasks[i]);
-  wlm.addTask(&tasks[0]);
-
+  std::chrono::steady_clock::time_point start_time;
+  start_time = std::chrono::steady_clock::now();
   wlm.start(); // tasks can be added before start.
   wlm.stop();
+  std::chrono::steady_clock::time_point end_time;
+  end_time = std::chrono::steady_clock::now();
+  std::chrono::seconds duration;
+  duration = std::chrono::duration_cast<std::chrono::seconds>
+             (end_time - start_time);
+  std::chrono::seconds maxExpectedDuration(22);
+  CPPUNIT_ASSERT( duration < maxExpectedDuration );
+  DEBUG_LOG("Test step duration : ", duration.count(), "s");
   check.globalCheck();
+
+  // Add 1 core tasks first
+  check.reset();
+  // std::size_t is always >= 0
+  for(int i = tasksNumber-1; i >= 0; i--)
+    wlm.addTask(&tasks[i]);
+  start_time = std::chrono::steady_clock::now();
+  wlm.start(); // tasks can be added before start.
+  wlm.stop();
+  end_time = std::chrono::steady_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::seconds>
+             (end_time - start_time);
+  CPPUNIT_ASSERT( duration < maxExpectedDuration );
+  DEBUG_LOG("Test step duration : ", duration.count(), "s");
+  check.globalCheck();
+
+  // Add 1 core tasks first & start before addTask
+  check.reset();
+  start_time = std::chrono::steady_clock::now();
+  wlm.start(); // tasks can be added before start.
+  for(int i = tasksNumber-1; i >= 0; i--)
+    wlm.addTask(&tasks[i]);
+  wlm.stop();
+  end_time = std::chrono::steady_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::seconds>
+             (end_time - start_time);
+  CPPUNIT_ASSERT( duration < maxExpectedDuration );
+  DEBUG_LOG("Test step duration : ", duration.count(), "s");
+  check.globalCheck();
+
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(MyTest);
