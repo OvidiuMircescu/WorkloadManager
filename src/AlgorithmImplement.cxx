@@ -19,12 +19,25 @@
 #include "AlgorithmImplement.hxx"
 #include "Task.hxx"
 #include <stdexcept>
+#include <limits>
 
 namespace WorkloadManager
 {
 void AlgorithmImplement::addTask(Task* t)
 {
-  _waitingTasks.push_back(t);
+  // put the tasks which need more cores in front.
+  float newNeedCores = t->type()->neededCores;
+  if(_waitingTasks.empty())
+    _waitingTasks.push_back(t);
+  else if(_waitingTasks.back()->type()->neededCores >= newNeedCores)
+    _waitingTasks.push_back(t);
+  else
+  {
+    std::list<Task*>::iterator it = _waitingTasks.begin();
+    while(it != _waitingTasks.end() && (*it)->type()->neededCores >= newNeedCores)
+      it++;
+    _waitingTasks.insert(it, t);
+  }
 }
 
 bool AlgorithmImplement::empty()const
@@ -52,7 +65,7 @@ WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
     const ContainerType* ctype = (*itTask)->type();
     std::map<const Resource *, ResourceLoadInfo>::iterator best_resource;
     best_resource = _resources.end();
-    float best_cost = -1.0;
+    float best_cost = std::numeric_limits<float>::max();
     for(auto itResource = _resources.begin();
         itResource != _resources.end();
         itResource++)
@@ -61,7 +74,7 @@ WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
         if(itResource->second.isAllocPossible(ctype))
         {
           float thisCost = itResource->second.cost(ctype);
-          if( best_cost < 0 || best_cost > thisCost)
+          if( best_cost > thisCost)
           {
             best_cost = thisCost;
             best_resource = itResource;
@@ -160,8 +173,7 @@ bool AlgorithmImplement::ResourceLoadInfo::isAllocPossible
 float AlgorithmImplement::ResourceLoadInfo::cost
                                 (const ContainerType* ctype)const
 {
-  // TODO: elaborate
-  return 1.0;
+  return _load * 100.0 / float(_resource->nbCores);
 }
 
 unsigned int AlgorithmImplement::ResourceLoadInfo::alloc

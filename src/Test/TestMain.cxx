@@ -32,7 +32,6 @@
 
 #include <string>
 #include <sstream>
-#include <vector>
 
 #include <chrono>
 #include <ctime>
@@ -236,7 +235,7 @@ void MyTest::atest()
 
   // Add 1 core tasks first
   check.reset();
-  // std::size_t is always >= 0
+  // WARNING: std::size_t is always >= 0
   for(int i = tasksNumber-1; i >= 0; i--)
     wlm.addTask(&tasks[i]);
   start_time = std::chrono::steady_clock::now();
@@ -252,7 +251,7 @@ void MyTest::atest()
   // Add 1 core tasks first & start before addTask
   check.reset();
   start_time = std::chrono::steady_clock::now();
-  wlm.start(); // tasks can be added before start.
+  wlm.start();
   for(int i = tasksNumber-1; i >= 0; i--)
     wlm.addTask(&tasks[i]);
   wlm.stop();
