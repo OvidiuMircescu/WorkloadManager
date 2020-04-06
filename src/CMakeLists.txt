@@ -5,14 +5,14 @@ set (_link_LIBRARIES
 set (_wlm_sources
   Task.cxx
   WorkloadManager.cxx
-  AlgorithmImplement.cxx
+  DefaultAlgorithm.cxx
 )
 
 set (_wlm_headers
   Task.hxx
   WorkloadManager.hxx
   WorkloadAlgorithm.hxx
-  AlgorithmImplement.hxx
+  DefaultAlgorithm.hxx
 )
 
 add_library(workloadmanager ${_wlm_sources})

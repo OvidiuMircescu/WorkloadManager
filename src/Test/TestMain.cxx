@@ -38,9 +38,9 @@
 #include <thread>
 
 #include "../WorkloadManager.hxx"
-#include "../AlgorithmImplement.hxx"
+#include "../DefaultAlgorithm.hxx"
 
-constexpr bool ACTIVATE_DEBUG_LOG = false;
+constexpr bool ACTIVATE_DEBUG_LOG = true;
 template<typename... Ts>
 void DEBUG_LOG(Ts... args)
 {
@@ -210,7 +210,7 @@ void MyTest::atest()
   DEBUG_LOG("Tasks from ", tasksNumber/2, " to ", tasksNumber, " are ",
             tasks[tasksNumber / 2].type()->name);
 
-  WorkloadManager::AlgorithmImplement algo;
+  WorkloadManager::DefaultAlgorithm algo;
   WorkloadManager::WorkloadManager wlm(algo);
   for(std::size_t i=0; i < resourcesNumber; i ++)
     wlm.addResource(&check.resources[i]);

@@ -16,14 +16,14 @@
 //
 // See http://www.salome-platform.org/ or email : webmaster.salome@opencascade.com
 //
-#include "AlgorithmImplement.hxx"
+#include "DefaultAlgorithm.hxx"
 #include "Task.hxx"
 #include <stdexcept>
 #include <limits>
 
 namespace WorkloadManager
 {
-void AlgorithmImplement::addTask(Task* t)
+void DefaultAlgorithm::addTask(Task* t)
 {
   // put the tasks which need more cores in front.
   float newNeedCores = t->type()->neededCores;
@@ -40,12 +40,12 @@ void AlgorithmImplement::addTask(Task* t)
   }
 }
 
-bool AlgorithmImplement::empty()const
+bool DefaultAlgorithm::empty()const
 {
   return _waitingTasks.empty();
 }
 
-void AlgorithmImplement::addResource(Resource* r)
+void DefaultAlgorithm::addResource(Resource* r)
 {
   // add the resource. The operation is ignored if the resource already exists.
   _resources.emplace(std::piecewise_construct,
@@ -54,7 +54,7 @@ void AlgorithmImplement::addResource(Resource* r)
                     );
 }
 
-WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
+WorkloadAlgorithm::LaunchInfo DefaultAlgorithm::chooseTask()
 {
   LaunchInfo result;
   std::list<Task*>::iterator chosenTaskIt;
@@ -96,7 +96,7 @@ WorkloadAlgorithm::LaunchInfo AlgorithmImplement::chooseTask()
   return result;
 }
 
-void AlgorithmImplement::liberate(const LaunchInfo& info)
+void DefaultAlgorithm::liberate(const LaunchInfo& info)
 {
   const Resource* r = info.worker.resource;
   unsigned int index = info.worker.index;
@@ -107,7 +107,7 @@ void AlgorithmImplement::liberate(const LaunchInfo& info)
 
 // ResourceInfoForContainer
 
-AlgorithmImplement::ResourceInfoForContainer::ResourceInfoForContainer
+DefaultAlgorithm::ResourceInfoForContainer::ResourceInfoForContainer
                                 (const Resource * r, const ContainerType* ctype)
 : _ctype(ctype)
 , _resource(r)
@@ -116,12 +116,12 @@ AlgorithmImplement::ResourceInfoForContainer::ResourceInfoForContainer
 {
 }
 
-unsigned int AlgorithmImplement::ResourceInfoForContainer::maxContainers()const
+unsigned int DefaultAlgorithm::ResourceInfoForContainer::maxContainers()const
 {
   return float(_resource->nbCores) / _ctype->neededCores;
 }
 
-unsigned int  AlgorithmImplement::ResourceInfoForContainer::alloc()
+unsigned int  DefaultAlgorithm::ResourceInfoForContainer::alloc()
 {
   unsigned int result = _firstFreeContainer;
   _runningContainers.insert(result);
@@ -131,19 +131,19 @@ unsigned int  AlgorithmImplement::ResourceInfoForContainer::alloc()
   return result;
 }
 
-void AlgorithmImplement::ResourceInfoForContainer::free(unsigned int index)
+void DefaultAlgorithm::ResourceInfoForContainer::free(unsigned int index)
 {
   _runningContainers.erase(index);
   if(index < _firstFreeContainer)
     _firstFreeContainer = index;
 }
 
-unsigned int AlgorithmImplement::ResourceInfoForContainer::nbRunningContainers()const
+unsigned int DefaultAlgorithm::ResourceInfoForContainer::nbRunningContainers()const
 {
   return _runningContainers.size();
 }
 
-bool AlgorithmImplement::ResourceInfoForContainer::isContainerRunning
+bool DefaultAlgorithm::ResourceInfoForContainer::isContainerRunning
                                 (unsigned int index)const
 {
   return _runningContainers.find(index)!=_runningContainers.end();
@@ -151,32 +151,32 @@ bool AlgorithmImplement::ResourceInfoForContainer::isContainerRunning
 
 // ResourceLoadInfo
 
-AlgorithmImplement::ResourceLoadInfo::ResourceLoadInfo(const Resource * r)
+DefaultAlgorithm::ResourceLoadInfo::ResourceLoadInfo(const Resource * r)
 : _resource(r)
 , _load(0.0)
 , _ctypes()
 {
 }
 
-bool AlgorithmImplement::ResourceLoadInfo::isSupported
+bool DefaultAlgorithm::ResourceLoadInfo::isSupported
                                 (const ContainerType* ctype)const
 {
   return ctype->neededCores <= _resource->nbCores ;
 }
                                           
-bool AlgorithmImplement::ResourceLoadInfo::isAllocPossible
+bool DefaultAlgorithm::ResourceLoadInfo::isAllocPossible
                                 (const ContainerType* ctype)const
 {
   return ctype->neededCores + _load <= _resource->nbCores;
 }
 
-float AlgorithmImplement::ResourceLoadInfo::cost
+float DefaultAlgorithm::ResourceLoadInfo::cost
                                 (const ContainerType* ctype)const
 {
   return _load * 100.0 / float(_resource->nbCores);
 }
 
-unsigned int AlgorithmImplement::ResourceLoadInfo::alloc
+unsigned int DefaultAlgorithm::ResourceLoadInfo::alloc
                                 (const ContainerType* ctype)
 {
   std::map<const ContainerType*, ResourceInfoForContainer>::iterator it;
@@ -193,7 +193,7 @@ unsigned int AlgorithmImplement::ResourceLoadInfo::alloc
   return it->second.alloc();
 }
 
-void AlgorithmImplement::ResourceLoadInfo::free
+void DefaultAlgorithm::ResourceLoadInfo::free
                                 (const ContainerType* ctype, int index)
 {
   _load -= ctype->neededCores;

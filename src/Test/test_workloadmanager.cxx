@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include "../WorkloadManager.hxx"
-#include "../AlgorithmImplement.hxx"
+#include "../DefaultAlgorithm.hxx"
 
 class MyTask : public WorkloadManager::Task
 {
@@ -29,7 +29,7 @@ private:
 
 int main(int argc, char *argv[])
 {
-  WorkloadManager::AlgorithmImplement algo;
+  WorkloadManager::DefaultAlgorithm algo;
   WorkloadManager::WorkloadManager wlm(algo);
   WorkloadManager::Resource r;
   r.id = 0;
