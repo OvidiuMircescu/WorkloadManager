@@ -83,12 +83,12 @@ private:
 class MyTask : public WorkloadManager::Task
 {
 public:
-  const WorkloadManager::ContainerType* type()const override {return _type;}
+  const WorkloadManager::ContainerType& type()const override {return *_type;}
   void run(const WorkloadManager::Container& c)override
   {
     _check->check(c, this);
 
-    DEBUG_LOG("Running task ", _id, " on ", c.resource->name, "-", c.type->name,
+    DEBUG_LOG("Running task ", _id, " on ", c.resource.name, "-", c.type.name,
               "-", c.index);
     std::this_thread::sleep_for(std::chrono::seconds(_sleep));
     DEBUG_LOG("Finish task ", _id);
@@ -141,7 +141,7 @@ void Checker<size_R, size_T>::check(const WorkloadManager::Container& c,
                                     MyTask* t)
 {
   std::unique_lock<std::mutex> lock(_mutex);
-  int& max = _maxContainersForResource[c.resource->id][c.type->id];
+  int& max = _maxContainersForResource[c.resource.id][c.type.id];
   if( max < c.index)
     max = c.index;
 }
@@ -206,14 +206,14 @@ void MyTest::atest()
     tasks[i].reset(i, &check.types[1], 1, &check);
 
   DEBUG_LOG("Number of tasks: ", tasksNumber);
-  DEBUG_LOG("Tasks from 0 to ", tasksNumber/2, " are ", tasks[0].type()->name);
+  DEBUG_LOG("Tasks from 0 to ", tasksNumber/2, " are ", tasks[0].type().name);
   DEBUG_LOG("Tasks from ", tasksNumber/2, " to ", tasksNumber, " are ",
-            tasks[tasksNumber / 2].type()->name);
+            tasks[tasksNumber / 2].type().name);
 
   WorkloadManager::DefaultAlgorithm algo;
   WorkloadManager::WorkloadManager wlm(algo);
   for(std::size_t i=0; i < resourcesNumber; i ++)
-    wlm.addResource(&check.resources[i]);
+    wlm.addResource(check.resources[i]);
 
   // Add 4 core tasks first
   check.reset();

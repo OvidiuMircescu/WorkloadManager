@@ -35,7 +35,7 @@ namespace WorkloadManager
     WorkloadManager(WorkloadAlgorithm& algo);
     ~WorkloadManager();
     void addTask(Task* t);
-    void addResource(Resource* r);
+    void addResource(const Resource& r);
     void start(); //! start execution
     void stop(); //! stop execution
 

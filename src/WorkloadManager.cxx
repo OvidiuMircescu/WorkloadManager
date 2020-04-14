@@ -40,7 +40,7 @@ namespace WorkloadManager
     stop();
   }
   
-  void WorkloadManager::addResource(Resource* r)
+  void WorkloadManager::addResource(const Resource& r)
   {
     std::unique_lock<std::mutex> lock(_data_mutex);
     _algo.addResource(r);
