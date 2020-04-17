@@ -66,6 +66,7 @@ namespace WorkloadManager
   class Task
   {
   public:
+    virtual ~Task(){};
     virtual const ContainerType& type()const =0;
     virtual void run(const Container& c)=0;
   };
