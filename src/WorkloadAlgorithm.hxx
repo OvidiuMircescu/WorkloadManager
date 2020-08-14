@@ -29,12 +29,12 @@ public:
   struct LaunchInfo
   {
     bool taskFound=false;
-    Container worker;
+    RunInfo worker;
     Task* task=nullptr;
   };
 
   virtual void addTask(Task* t)=0;
-  virtual void addResource(Resource* r)=0;
+  virtual void addResource(const Resource& r)=0;
   virtual LaunchInfo chooseTask()=0;
   virtual void liberate(const LaunchInfo& info)=0;
   virtual bool empty()const =0;

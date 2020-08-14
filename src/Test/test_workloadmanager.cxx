@@ -14,12 +14,12 @@ public:
     _type.name = "lolo";
     _type.neededCores = 1.0;
   }
-  const WorkloadManager::ContainerType* type()const override {return &_type;}
-  void run(const WorkloadManager::Container& c)override 
+  const WorkloadManager::ContainerType& type()const override {return _type;}
+  void run(const WorkloadManager::RunInfo& c)override 
   {
     std::ostringstream message;
-    message << "Running task on " << c.resource->name << "-"
-              << c.type->name << "-" << c.index << std::endl;
+    message << "Running task on " << c.resource.name << "-"
+              << c.type.name << "-" << c.index << std::endl;
     std::cout << message.str();
   }
   
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   r.id = 0;
   r.name = "toto";
   r.nbCores = 42;
-  wlm.addResource(&r);
+  wlm.addResource(r);
   WorkloadManager::ContainerType ct;
   ct.id = 0;
   ct.name = "zozo";
