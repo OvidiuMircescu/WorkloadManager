@@ -36,7 +36,7 @@ void Manager::addTask()
   // if(!_stop)
   std::unique_lock<std::mutex> lock(_data_mutex);
   int currentIndex = _nextIndex++;
-  _tasks.emplace(currentIndex, std::async([this, currentIndex]
+  _tasks.emplace(currentIndex, std::async(std::launch::async, [this, currentIndex]
     {
       runTask(currentIndex);
     }));
@@ -63,7 +63,7 @@ void Manager::endTask(int index)
 
 void Manager::start()
 {
-  _otherThreads.emplace_back(std::async([this]
+  _otherThreads.emplace_back(std::async(std::launch::async, [this]
     {
       finishTasks();
     }));

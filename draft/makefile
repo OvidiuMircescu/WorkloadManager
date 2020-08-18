@@ -5,4 +5,4 @@ thtest : thtest.cpp
 asynctest : asynctest.cpp
 	g++ -std=c++11 -Wall -pthread asynctest.cpp -o asynctest
 clean :
-	rm thtest asynctest
+	rm  -f thtest asynctest
